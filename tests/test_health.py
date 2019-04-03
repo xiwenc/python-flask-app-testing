@@ -1,35 +1,42 @@
 from unittest import mock
 from flask_testing import LiveServerTestCase
+from http import HTTPStatus
 
 from app.main import App
+from tests.base import AAAMixin
 
 
-# Example using Magick Mock
-class TestHealth_sick(LiveServerTestCase):
-    def setUp(self):
-        self.client = self.app.test_client()
-        super().setUp()
+class TestHealth_sick(AAAMixin, LiveServerTestCase):
+    """ Detect when mail service is in sick state """
 
-    def _arrange(self):
-        self.expected_health = {"state": "sick"}
+    def ARRANGE(self):
+        self.expected_health = {"mail_service": "sick"}
         mocked_mail_service = mock.Mock(autospec=True)
         mocked_mail_service.check = mock.MagicMock(
-            return_value=self.expected_health,
+            return_value=self.expected_health["mail_service"],
         )
         return App(
             mail_service=mocked_mail_service,
         ).create_app()
 
-    def _act(self):
-        self.response = self.client.get("/health")
+    def ACT(self):
+        return self.client.get("/health")
 
-    def _assert(self):
-        assert self.response.status_code == 200
+    def ASSERT(self):
+        assert self.response.status_code == HTTPStatus.OK
         assert self.response.get_json() == self.expected_health
 
-    def create_app(self):
-        return self._arrange()
 
-    def test_case(self):
-        self._act()
-        self._assert()
+class TestHealth_integration(AAAMixin, LiveServerTestCase):
+    """ Test against real mail service integration """
+
+    def ARRANGE(self):
+        self.expected_health = {"mail_service": "OK"}
+        return App().create_app()
+
+    def ACT(self):
+        return self.client.get("/health")
+
+    def ASSERT(self):
+        assert self.response.status_code == HTTPStatus.OK
+        assert self.response.get_json() == self.expected_health
