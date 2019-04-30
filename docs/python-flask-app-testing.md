@@ -13,7 +13,7 @@ First I will give my opinion on testing and methodology followed by a demo case 
 The foundation described in this article is mainly focussed on early projects with limited resources like time and people effort. In these cases you want lowest possible investment with high return in value. Note that this is no silver bullet.
 
 # High value tests
-As a software engineer that has built many micro services in the past I have always believed having integration tests in the early stages of a product is of utmost importance to detect issues and confirm assumptions. Nowadays it is rare to build fully self contained systems that does not interact with another external systems. This external system could be a webservice or perhaps a complicated library that renders PDF files.
+As a software engineer that has built many micro services in the past I have always believed having integration tests in the early stages of a product is of utmost importance to detect issues and confirm assumptions. Nowadays it is rare to build fully self contained systems that do not interact with other external systems. This external system could be a webservice or perhaps a complicated library that renders PDF files.
 
 My definition for "High value tests" is inspired by [High Cost Tests and High Value Tests](https://medium.com/table-xi/high-cost-tests-and-high-value-tests-a86e27a54df):
 A test case that is *efficient* and *effective* that focusses on business logic *we* have implemented.
