@@ -1,4 +1,1 @@
 Flask==1.0.2
-Flask-Testing==0.7.1
-pytest==4.4.0
-pytest-parallel==0.0.9

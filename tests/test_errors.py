@@ -26,7 +26,7 @@ class TestErrors_throw_exception(AAAMixin, LiveServerTestCase):
         return App().create_app()
 
     def ACT(self):
-        return self.client.put("/error")
+        return self.client.put("/throw-exception")
 
     def ASSERT(self):
         assert self.response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR

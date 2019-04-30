@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+    <html>
+    <head>
+        <meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+        <title>Introduction</title>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/katex.min.css" integrity="sha384-9eLZqc9ds8eNjO3TmqPeYcDj8n+Qfa4nuSiGYa6DjLNcv9BtN69ZIulL9+8CqC9Y" crossorigin="anonymous">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/markdown.css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/highlight.css">
+        <link href="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.css" rel="stylesheet" type="text/css">
+        <style>
+.task-list-item { list-style-type: none; } .task-list-item-checkbox { margin-left: -20px; vertical-align: middle; }
+</style>
+        <style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', 'Ubuntu', 'Droid Sans', sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+            }
+        </style>
+        
+        <script src="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.js"></script>
+    </head>
+    <body>
+        <hr>
+<h2 id="title-%22high-value-tests-with-python-flask%22date-2019-03-2611030100draft-true">title: &quot;High value tests with Python Flask&quot;
+date: 2019-03-26:11:03+01:00
+draft: true</h2>
+<h1 id="introduction">Introduction</h1>
+<p>After 6 years developing Python Flask applications, mainly REST API's, in 2019 I still could not find good article on developing high value tests for Python Flask based applications. That is going to change today!</p>
+<p>First I will give my opinion on testing and methodology followed by a demo case to illustrate high value testing with actual code. Feel free to skip all the boring reading and head directly over to the code on Github.</p>
+<p>The foundation described in this article is mainly focussed on early projects with limited resources like time and people effort. In these cases you want lowest possible investment with high return in value. Note that this is no silver bullet.</p>
+<h1 id="high-value-tests">High value tests</h1>
+<p>As a software engineer that has built many micro services in the past I have always believed having integration tests in the early stages of a product is of utmost importance to detect issues and confirm assumptions. Nowadays it is rare to build fully self contained systems that does not interact with another external systems. This external system could be a webservice or perhaps a complicated library that renders PDF files.</p>
+<p>My definition for &quot;High value tests&quot; is inspired by <a href="https://medium.com/table-xi/high-cost-tests-and-high-value-tests-a86e27a54df">High Cost Tests and High Value Tests</a>:
+A test case that is <em>efficient</em> and <em>effective</em> that focusses on business logic <em>we</em> have implemented.</p>
+<p>So let's dissect this statement. We want our tests to be <em>efficient</em> because it is not funny to wait for hours for a test case to finish to discover it failed. Or it demands many resources like compute power or manual labor which could be very costly. <em>Effective</em> because we are only interested in interfacing of third party library or web service but not their inner workings. Finally there is emphasis on <em>we</em>. Our system is often a composition of one or more other components working in harmony. Full complexity of systems are in fact all the code you have produced together with the code of all your dependencies and their dependencies. As you might have guessed already in practice systems are often very complicated. As we do not have access to infinite resources we have to get the most out of our investments so we test the interfaces of these external dependencies only.</p>
+<p>In practice good test cases are a balance between depth (when do we include external dependencies), simplicity and flexibility.</p>
+<h1 id="anatomy">Anatomy</h1>
+<p>Following the AAA (Arrange, Act and Assert) pattern we define the the anatomy of a good high value test case to have the follow components:</p>
+<ul>
+<li><strong>Goal</strong>: Why are we writing this test?</li>
+<li><strong>Arrange</strong>: What assumptions do we have if any?</li>
+<li><strong>Act</strong>: Trigger the API endpoint or function call</li>
+<li><strong>Assert</strong>: Verify expected results</li>
+</ul>
+<p>Other non-functional requirements are:</p>
+<ul>
+<li>Simplicity: someone with low programming skills should be able to extend or create new test cases based on existing ones</li>
+<li>Fast: ideally the test case completes in milliseconds</li>
+<li>Readability: conventional programming best practices should be applied to tests also like short but descriptive variable names</li>
+</ul>
+<h1 id="example-simple-rest-api-with-flask">Example: Simple REST API with Flask</h1>
+<p>Let's consider a simple Flask app that uses a hypothetical mail service implemented as <code>MailService</code>. Below is the file and directory structure of our application with 4 test cases implemented in 2 files (<code>test_errors.py</code> and <code>test_health.py</code>). We will dive deeper into the code in the rest of this section.</p>
+<pre><code><div>├── README.md
+├── app
+│   ├── __init__.py
+│   └── main.py
+├── example_libs
+│   ├── __init__.py
+│   └── mail_service.py
+├── requirements.txt
+└── tests
+    ├── __init__.py
+    ├── base.py
+    ├── test_errors.py
+    └── test_health.py
+</div></code></pre>
+<p>In the app we have defined two REST endpoints:</p>
+<ul>
+<li>GET /health: responsible for reporting the health status of our app. The app's health is partly determined by whether we can communicate with the mail service. We do this by calling the <code>check()</code> method on the mail service instance.</li>
+<li>PUT /error: throws a generic <code>Exception</code> simulating a runtime error.</li>
+</ul>
+<p>Here's actual source code <code>main.py</code>:</p>
+<pre><code class="language-python"><div><span class="hljs-keyword">from</span> flask <span class="hljs-keyword">import</span> request, jsonify
+<span class="hljs-keyword">from</span> flask <span class="hljs-keyword">import</span> Flask
+
+
+<span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">App</span><span class="hljs-params">(object)</span>:</span>
+
+    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">__init__</span><span class="hljs-params">(self, mail_service=None)</span>:</span>
+
+        <span class="hljs-comment"># Create real service if not mocking</span>
+        <span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> mail_service:
+            <span class="hljs-keyword">from</span> example_libs.mail_service <span class="hljs-keyword">import</span> MailService
+            mail_service = MailService()
+        self.mail_service = mail_service
+
+    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">create_app</span><span class="hljs-params">(self)</span>:</span>
+        app = Flask(__name__)
+        app.app_context().push()
+
+<span class="hljs-meta">        @app.route("/health", methods=["GET"])</span>
+        <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">health</span><span class="hljs-params">()</span>:</span>
+            mail_service_health = self.mail_service.check()
+            summary = {
+                <span class="hljs-string">"mail_service"</span>: mail_service_health,
+            }
+            <span class="hljs-keyword">return</span> jsonify(summary)
+
+<span class="hljs-meta">        @app.route("/throw-exception", methods=["PUT"])</span>
+        <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">error</span><span class="hljs-params">()</span>:</span>
+            <span class="hljs-keyword">raise</span> Exception(<span class="hljs-string">"An error has occurred"</span>)
+
+        <span class="hljs-keyword">return</span> app
+
+<span class="hljs-keyword">if</span> __name__ == <span class="hljs-string">"__main__"</span>:
+    App().create_app().run()
+</div></code></pre>
+<h2 id="test-suite-overview">Test suite overview</h2>
+<p>Test cases are often located in the <code>tests</code> directory. Each test case is implemented as a TestCase class</p>
+<pre><code class="language-plantuml"><div>
+abstract class AAAMixin {
+    {abstract} app ARRANGE()
+    {abstract} void ACT()
+    {abstract} void ASSERT()
+    void test_case()
+    - app create_app()
+}
+class LiveServerTestCase {
+    {abstract} app create_app()
+    ...
+}
+class TestCase {
+    ARRANGE()
+    ACT()
+    ASSERT()
+}
+
+AAAMixin &lt;|-- TestCase
+LiveServerTestCase &lt;|-- TestCase
+</div></code></pre>
+<h2 id="aaamixin">AAAMixin</h2>
+<p>Before we start writing our test cases we first define our <code>AAAMixin</code> class which implements a basic structure according to the AAA methodology discussed earlier. We will use this mixin class later in our test cases. To void the <code>assert</code> keyword we write the main AAA methods which must be implemented by all test cases: <code>ARRANGE(self)</code>, <code>ACT(self)</code> and <code>ASSERT(self)</code>.</p>
+<pre><code class="language-python"><div><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">AAAMixin</span><span class="hljs-params">(object)</span>:</span>
+    <span class="hljs-string">""" Arrange, Act and Assert pattern """</span>
+
+    response = <span class="hljs-literal">None</span>
+    client = <span class="hljs-literal">None</span>
+
+    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">setUp</span><span class="hljs-params">(self)</span>:</span>
+        <span class="hljs-string">""" Called after self.create_app() """</span>
+        self.client = self.app.test_client()
+        <span class="hljs-keyword">return</span> super().setUp()
+
+    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">ARRANGE</span><span class="hljs-params">(self)</span>:</span>
+        <span class="hljs-keyword">raise</span> NotImplementedError()
+
+    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">ACT</span><span class="hljs-params">(self)</span>:</span>
+        <span class="hljs-string">""" Use make call to live server and return the response
+
+        e.g. return self.client.get("/health")
+        """</span>
+        <span class="hljs-keyword">raise</span> NotImplementedError()
+
+    <span class="hljs-comment"># assert is a served keyword</span>
+    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">ASSERT</span><span class="hljs-params">(self)</span>:</span>
+        <span class="hljs-keyword">raise</span> NotImplementedError()
+
+    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">create_app</span><span class="hljs-params">(self)</span>:</span>
+        <span class="hljs-keyword">return</span> self.ARRANGE()
+
+    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">test_case</span><span class="hljs-params">(self)</span>:</span>
+        <span class="hljs-string">""" Single test case per test class """</span>
+
+        <span class="hljs-comment"># Commented out because it is called by create_app(...) very early</span>
+        <span class="hljs-comment">#self._arrange()</span>
+        self.response = self.ACT()
+        self.ASSERT()
+</div></code></pre>
+<h2 id="integration-test-health">Integration test: /health</h2>
+<p>With the <code>AAAMixin</code> defined we can combine it with <code>LiveServerTestCase</code> from <code>flask_testing</code> package to write our first test case for <code>GET /health</code>. This test shows how we can use the AAA approach with a live server instance of our app to test against a real <code>MailService</code> instance.</p>
+<pre><code class="language-python"><div><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">TestHealth_integration</span><span class="hljs-params">(AAAMixin, LiveServerTestCase)</span>:</span>
+    <span class="hljs-string">""" Test against real mail service integration """</span>
+
+    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">ARRANGE</span><span class="hljs-params">(self)</span>:</span>
+        self.expected_health = {<span class="hljs-string">"mail_service"</span>: <span class="hljs-string">"OK"</span>}
+        <span class="hljs-keyword">return</span> App().create_app()
+
+    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">ACT</span><span class="hljs-params">(self)</span>:</span>
+        <span class="hljs-keyword">return</span> self.client.get(<span class="hljs-string">"/health"</span>)
+
+    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">ASSERT</span><span class="hljs-params">(self)</span>:</span>
+        <span class="hljs-keyword">assert</span> self.response.status_code == HTTPStatus.OK
+        <span class="hljs-keyword">assert</span> self.response.get_json() == self.expected_health
+</div></code></pre>
+<h2 id="unit-test-health">Unit test: /health</h2>
+<p>In a real world scenario the MailService could slow down our test. We could have a very limited set of integration tests of this service and mock it most of the time. Mocking is very useful because it's fast and that's were we set our boundaries of where we stop testing logic that was not implemented by us (with the assumption the third party library is well tested on its own).</p>
+<pre><code class="language-python"><div><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">TestHealth_sick</span><span class="hljs-params">(AAAMixin, LiveServerTestCase)</span>:</span>
+    <span class="hljs-string">""" Detect when mail service is in sick state """</span>
+
+    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">ARRANGE</span><span class="hljs-params">(self)</span>:</span>
+        self.expected_health = {<span class="hljs-string">"mail_service"</span>: <span class="hljs-string">"sick"</span>}
+        mocked_mail_service = mock.Mock(autospec=<span class="hljs-literal">True</span>)
+        mocked_mail_service.check = mock.MagicMock(
+            return_value=self.expected_health[<span class="hljs-string">"mail_service"</span>],
+        )
+        <span class="hljs-keyword">return</span> App(
+            mail_service=mocked_mail_service,
+        ).create_app()
+
+    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">ACT</span><span class="hljs-params">(self)</span>:</span>
+        <span class="hljs-keyword">return</span> self.client.get(<span class="hljs-string">"/health"</span>)
+
+    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">ASSERT</span><span class="hljs-params">(self)</span>:</span>
+        <span class="hljs-keyword">assert</span> self.response.status_code == HTTPStatus.OK
+        <span class="hljs-keyword">assert</span> self.response.get_json() == self.expected_health
+</div></code></pre>
+<h1 id="conclusions">Conclusions</h1>
+<h1 id="future">Future</h1>
+<p>In the future we will extend this simple REST API with MySQL database support. In the light of high value tests we will also extend the test suite with support for launching MySQL service to support our tests.</p>
+<h1 id="references">References</h1>
+<ul>
+<li><a href="https://medium.com/@hakibenita/keeping-tests-dry-with-class-based-tests-in-python-e3f2d815124">https://medium.com/@hakibenita/keeping-tests-dry-with-class-based-tests-in-python-e3f2d815124</a></li>
+<li><a href="https://medium.com/table-xi/high-cost-tests-and-high-value-tests-a86e27a54df">https://medium.com/table-xi/high-cost-tests-and-high-value-tests-a86e27a54df</a></li>
+<li><a href="http://wiki.c2.com/?ArrangeActAssert">http://wiki.c2.com/?ArrangeActAssert</a></li>
+<li><a href="http://softwaretestingfundamentals.com/unit-testing/">http://softwaretestingfundamentals.com/unit-testing/</a></li>
+<li><a href="https://techbeacon.com/devops/6-best-practices-integration-testing-continuous-integration">https://techbeacon.com/devops/6-best-practices-integration-testing-continuous-integration</a></li>
+<li><a href="https://hackernoon.com/low-effort-high-value-integration-tests-in-redux-apps-d3a590bd9fd5">https://hackernoon.com/low-effort-high-value-integration-tests-in-redux-apps-d3a590bd9fd5</a></li>
+<li><a href="https://dev.to/lgraziani2712/the-value-of-unit-or-integration-testing-56i0">https://dev.to/lgraziani2712/the-value-of-unit-or-integration-testing-56i0</a></li>
+<li></li>
+</ul>
+
+    </body>
+    </html>

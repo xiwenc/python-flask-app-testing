@@ -24,7 +24,7 @@ class App(object):
             }
             return jsonify(summary)
 
-        @app.route("/error", methods=["PUT"])
+        @app.route("/throw-exception", methods=["PUT"])
         def error():
             raise Exception("An error has occurred")
 

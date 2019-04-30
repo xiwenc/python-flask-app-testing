@@ -1,9 +1,3 @@
-from unittest import mock
-from flask_testing import LiveServerTestCase
-
-from app.main import App
-
-
 class AAAMixin(object):
     """ Arrange, Act and Assert pattern """
 
