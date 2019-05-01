@@ -6,19 +6,19 @@ draft: true
 
 # Introduction
 
-After 6 years developing Python Flask applications, mainly REST API's, in 2019 I still could not find good article on developing high value tests for Python Flask based applications. That is going to change today!
+After 6 years developing Python Flask applications, mainly REST API's, in 2019 I still could not find any good articles about how to develop high value tests for Python Flask based applications. That is going to change today!
 
-First I will give my opinion on testing and methodology followed by a demo case to illustrate high value testing with actual code. Feel free to skip all the boring reading and head directly over to the code on [Github](https://github.com/xiwenc/python-flask-app-testing).
+First I will give my opinion on testing and methodology, followed by a demo case to illustrate high value testing with actual code. Feel free to skip all the boring reading and head directly over to the code on [Github](https://github.com/xiwenc/python-flask-app-testing).
 
-The foundation described in this article is mainly focussed on early projects with limited resources like time and people effort. In these cases you want lowest possible investment with high return in value. Note that this is no silver bullet.
+The foundation described in this article is mainly focussed on early projects with limited resources like time and people effort. In these cases you want the lowest possible investment that will generate a high return in value. Note, however, that this is not a silver bullet.
 
 # High value tests
-As a software engineer that has built many micro services in the past I have always believed having integration tests in the early stages of a product is of utmost importance to detect issues and confirm assumptions. Nowadays it is rare to build fully self contained systems that do not interact with other external systems. This external system could be a webservice or perhaps a complicated library that renders PDF files.
+As a software engineer that has built many microservices in the past, I have always believed that having integration tests in the early stages of a product is of utmost importance to detect issues and confirm assumptions. Nowadays it is rare to build fully self contained systems that do not interact with other external systems. This external system could be a webservice or perhaps a complicated library that renders PDF files.
 
 My definition for "High value tests" is inspired by [High Cost Tests and High Value Tests](https://medium.com/table-xi/high-cost-tests-and-high-value-tests-a86e27a54df):
 A test case that is *efficient* and *effective* that focusses on business logic *we* have implemented.
 
-So let's dissect this statement. We want our tests to be *efficient* because it is not funny to wait for hours for a test case to finish to discover it failed. Or it demands many resources like compute power or manual labor which could be very costly. *Effective* because we are only interested in interfacing of third party library or web service but not their inner workings. Finally there is emphasis on *we*. Our system is often a composition of one or more other components working in harmony. Full complexity of systems are in fact all the code you have produced together with the code of all your dependencies and their dependencies. As you might have guessed already in practice systems are often very complicated. As we do not have access to infinite resources we have to get the most out of our investments so we test the interfaces of these external dependencies only.
+Let's dissect this statement. We want our tests to be *efficient*, because it is not funny to wait for hours for a test case to finish to discover it failed. Or it demands many resources like compute power or manual labor which could be very costly. *Effective* because we are only interested in interfacing with a third party library or web service but not their inner workings. Finally there is emphasis on *we*. Our system is often a composition of one or more other components working in harmony. Full complexity of systems are in fact all the code you have produced together with the code of all your dependencies and their dependencies. As you might have guessed already in practice systems are often very complicated. As we do not have access to infinite resources we have to get the most out of our investments so we test the interfaces of these external dependencies only.
 
 In practice good test cases are a balance between depth (when do we include external dependencies), simplicity and flexibility.
 
@@ -34,7 +34,7 @@ Following the [AAA (Arrange, Act and Assert) pattern](http://wiki.c2.com/?Arrang
 Other non-functional requirements are:
 - Simplicity: someone with low programming skills should be able to extend or create new test cases based on existing ones
 - Fast: ideally the test case completes in milliseconds
-- Readability: conventional programming best practices should be applied to tests also like short but descriptive variable names
+- Readability: conventional programming best practices should be applied to tests also, like short but descriptive variable names
 
 # Example: Simple REST API with Flask
 
@@ -101,7 +101,7 @@ if __name__ == "__main__":
 
 ## Test suite overview
 
-Test cases are often located in the `tests` directory. Each test case is implemented as a TestCase class. Below class diagram depicts the high level composition of such TestCase. 
+Test cases are often located in the `tests` directory. Each test case is implemented as a TestCase class. The below class diagram depicts the high level composition of such a TestCase. 
 
 ```plantuml
 
@@ -173,7 +173,7 @@ The `AAAMixin` class is tightly coupled with the `LiveServerTestCase` class. The
 * `create_app()`: returns the app created by `ARRANGE()`. This is needed because LiveServerTestCase expects this method to be implemented.
   * `ARRANGE()`: to create the app, mocking if any have to be done in here
 * `setUp()`: extra setup steps, here we pre-create the `test_client`
-* `test_case()`: impliciet test case. This is comparable to `main()` as main entry point but this is our test case and all test cases must start with `test_` prefix.
+* `test_case()`: implicit test case. This is comparable to `main()` as main entry point but this is our test case and all test cases must start with `test_` prefix.
   * `ACT()`: make call to API using `self.client` and return its response to `self.response`.
   * `ASSERT()`: verify expected results by accessing `self.response`.
 
@@ -266,7 +266,7 @@ class TestErrors_throw_exception(AAAMixin, LiveServerTestCase):
 
 # Demo
 
-Enough text, lets see how all of this works:
+Enough text, let's see how all of this works:
 
 ```bash
 python3 -m venv venv
@@ -306,17 +306,17 @@ venv/lib/python3.7/site-packages/jinja2/runtime.py:318
 
 Our final test cases adhere to:
 - AAA principles: explicit arrange, act & assert; nothing else
-- simplicity: implement 3 methods and your are good to go
-- fast: runs in milliseconds and allows easy mocking of components 
-- readable: the structure is easy to understand
+- Simplicity: implement 3 methods and you are good to go
+- Fast: runs in milliseconds and allows easy mocking of components 
+- Readable: the structure is easy to understand
 
-With the ability of running our tests againt a live server over HTTP allows us to test our API's more in depth. And we have the choice to decide how deep because of the easiness of mocking pieces of our application. For this to work our `App.create_app()` must be able to accept instances to be mocked. Alternatively one could explore the possibility to do monkey patching.
+With the ability to running our tests againt a live server over HTTP, this allows us to test our APIs in more depth. We also have the choice to decide how deep we wish to test, because of the ease of mocking individual pieces of our application. For this to work, our `App.create_app()` must be able to accept instances to be mocked. Alternatively, one could explore the possibility of monkey patching.
 
 # Conclusions
 
-This test suite is currently being used by a medium sized Python REST API service. It has speeded up our development significantly and onboarding new developers was a breeze.
+This test suite is currently being used by a medium sized Python REST API service. It has sped up our development significantly, and onboarding new developers was a breeze.
 
-Checkout the code on [Github](https://github.com/xiwenc/python-flask-app-testing)
+Check out the code on [Github](https://github.com/xiwenc/python-flask-app-testing)
 
 
 # Future
