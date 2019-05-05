@@ -17,7 +17,7 @@ python -m pytest ./tests -vv
 Articles
 ==
 
-[Introduction](docs/python-flask-app-testing.md)
+[Introduction](https://cinaq.com/2019/05/05/simple-high-value-tests-with-python-flask/)
 
 
 Features
